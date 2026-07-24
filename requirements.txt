@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Building RAG Pipelines (C8-W4-S1) — dependencies
+# Building RAG Pipelines — dependencies
 # ---------------------------------------------------------------------------
 # The package + notebooks run with the CORE deps below. Everything is optional
 # at runtime: if a library is missing the code degrades to an offline "mock"

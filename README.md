@@ -1,4 +1,4 @@
-# Building RAG Pipelines — C8-W4-S1
+# Building RAG Pipelines
 
 A complete, hands-on teaching package for the 180-minute upGrad live session
 **"Building RAG Pipelines"**. It teaches Retrieval-Augmented Generation (RAG) as a

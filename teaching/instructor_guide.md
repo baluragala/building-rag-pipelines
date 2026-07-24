@@ -1,4 +1,4 @@
-# Instructor Guide — Building RAG Pipelines (C8-W4-S1)
+# Instructor Guide — Building RAG Pipelines
 
 **Format:** 180-minute upGrad live session (graduate level)
 **Modality:** Live coding + discussion. 8 Google-Colab-compatible notebooks driven from a shared `rag_pipeline` package.

@@ -1,4 +1,4 @@
-# Learner Handout — Building RAG Pipelines (C8-W4-S1)
+# Learner Handout — Building RAG Pipelines
 
 **Take-home study notes for the 180-minute session.** Keep this next to the 8 notebooks and the `rag_pipeline` package.
 

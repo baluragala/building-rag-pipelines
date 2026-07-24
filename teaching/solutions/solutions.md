@@ -1,6 +1,6 @@
 # Building RAG Pipelines — Worked Solutions
 
-**Session:** C8-W4-S1 · Companion to `../exercises.md`
+**Session:**  · Companion to `../exercises.md`
 
 Every solution below assumes the shared setup from `exercises.md` has run:
 

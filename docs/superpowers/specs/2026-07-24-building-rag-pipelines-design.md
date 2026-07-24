@@ -1,4 +1,4 @@
-# Building RAG Pipelines (C8-W4-S1) — Teaching Package Design
+# Building RAG Pipelines — Teaching Package Design
 
 **Date:** 2026-07-24
 **Source agenda:** `Agenda_C8_GenAI_W4S1_Building_RAG_Pipelines_SME.pdf` (upGrad, 180-min live session)

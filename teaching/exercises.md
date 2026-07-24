@@ -1,6 +1,6 @@
 # Building RAG Pipelines — Practice Exercises
 
-**Session:** C8-W4-S1 · **Duration:** 180 minutes · **Package:** `rag_pipeline` · **Corpus:** Acme Cloud docs
+**Session:**  · **Duration:** 180 minutes · **Package:** `rag_pipeline` · **Corpus:** Acme Cloud docs
 
 ---
 
