@@ -124,18 +124,19 @@ jupyter lab
 
 ## Quick start (Google Colab)
 
-The notebooks are Colab-compatible. Each notebook's **first cell is a bootstrap**
-that installs dependencies and makes `rag_pipeline` importable. Before class:
+The notebooks are Colab-compatible and **already point at this repo**
+(`REPO_URL = https://github.com/baluragala/building-rag-pipelines.git` in each
+notebook's first cell), so there's nothing to configure:
 
-1. Push this folder to a Git repo.
-2. In each notebook's bootstrap cell, set `REPO_URL` to that repo (one line, marked
-   `# INSTRUCTOR: set this`).
-3. Learners open a notebook in Colab and run the bootstrap cell — it clones the repo
-   and installs deps. (Alternatively, upload the `rag_pipeline/` folder and `data/`
-   via the Colab file browser; the bootstrap detects and uses them.)
-4. For real generation, set `OPENAI_API_KEY` via `getpass` or Colab's secrets
+1. Open a notebook in Colab (e.g. via *File → Open notebook → GitHub*).
+2. Run the **first cell (bootstrap)** — it clones this repo, installs dependencies,
+   and makes `rag_pipeline` importable. *(Fork the repo and change that one
+   `REPO_URL` line if you host your own copy. Alternatively, upload the
+   `rag_pipeline/` folder and `data/` via the Colab file browser — the bootstrap
+   detects and uses them.)*
+3. For real generation, set `OPENAI_API_KEY` via `getpass` or Colab's secrets
    (`userdata`) — shown in the "Choose your providers" cell. With no key, it runs on
-   the mock automatically.
+   the offline mock automatically.
 
 ---
 
