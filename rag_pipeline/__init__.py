@@ -2,7 +2,7 @@
 rag_pipeline — a modular, teachable Retrieval-Augmented Generation pipeline.
 ===========================================================================
 
-Built for the upGrad live session "Building RAG Pipelines". Each
+Built for the "Building RAG Pipelines" teaching session. Each
 module maps to one stage of the pipeline, in the order data flows:
 
     loaders      → Stage 1: Loading   (ingestion, cleaning, metadata)

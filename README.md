@@ -1,6 +1,6 @@
 # Building RAG Pipelines
 
-A complete, hands-on teaching package for the 180-minute upGrad live session
+A complete, hands-on teaching package for the 180-minute session
 **"Building RAG Pipelines"**. It teaches Retrieval-Augmented Generation (RAG) as a
 **modular pipeline** — Loading → Chunking → Retrieval → Augmentation → Generation →
 Evaluation — following a **WHY → WHAT → HOW** pedagogy, with the recurring question

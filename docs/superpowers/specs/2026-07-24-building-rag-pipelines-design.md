@@ -1,10 +1,10 @@
 # Building RAG Pipelines — Teaching Package Design
 
 **Date:** 2026-07-24
-**Source agenda:** `Agenda_C8_GenAI_W4S1_Building_RAG_Pipelines_SME.pdf` (upGrad, 180-min live session)
+**Source agenda:** `Agenda_C8_GenAI_W4S1_Building_RAG_Pipelines_SME.pdf` (180-min session)
 
 ## Goal
-A complete, extensive hands-on teaching package for a 180-minute live session that teaches RAG as a **modular pipeline** (Loading → Chunking → Retrieval → Augmentation → Generation → Evaluation), following a **WHY → WHAT → HOW** pedagogy. Learners build and analyse a modular RAG pipeline, understand how each stage's design decisions cumulatively determine output quality, and can diagnose failure modes.
+A complete, extensive hands-on teaching package for a 180-minute session that teaches RAG as a **modular pipeline** (Loading → Chunking → Retrieval → Augmentation → Generation → Evaluation), following a **WHY → WHAT → HOW** pedagogy. Learners build and analyse a modular RAG pipeline, understand how each stage's design decisions cumulatively determine output quality, and can diagnose failure modes.
 
 ## Non-negotiable constraints (from agenda + user)
 - **Pedagogy:** every stage = WHY (motivation + "what happens if this step is poorly designed?") → WHAT (concept, trade-offs, do's/don'ts, failure modes) → HOW (from-scratch code first, then LangChain as a *parallel mapping*).

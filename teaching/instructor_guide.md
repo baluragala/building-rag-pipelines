@@ -1,6 +1,6 @@
 # Instructor Guide — Building RAG Pipelines
 
-**Format:** 180-minute upGrad live session (graduate level)
+**Format:** 180-minute hands-on session (graduate level)
 **Modality:** Live coding + discussion. 8 Google-Colab-compatible notebooks driven from a shared `rag_pipeline` package.
 **Pedagogy:** Every stage runs **WHY → WHAT → HOW**. WHY always includes the recurring question **"What happens if this step is poorly designed?"** HOW is **from-scratch first, LangChain as a parallel mapping (secondary)**.
 **Central thesis (say it three times):** *RAG performance is the cumulative result of design decisions across ALL stages — not just the choice of LLM.*
