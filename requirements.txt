@@ -37,3 +37,8 @@ langchain-text-splitters>=0.2
 # --- Evaluation ---
 # ragas>=0.1.7          # optional: RAGAS framework (heavy; notebook shows it optionally)
 # datasets>=2.19        # required by ragas
+
+# --- Local notebooks (Colab already has these) ---
+# Installed automatically by scripts/setup.sh and scripts/setup.ps1.
+# jupyterlab>=4.0
+# ipykernel>=6.29

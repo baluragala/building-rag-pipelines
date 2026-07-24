@@ -50,18 +50,77 @@ building-rag-pipelines/
 
 ---
 
-## Quick start (local)
+## Local setup with a virtual environment (recommended)
 
+Always work inside a **virtual environment** so this project's packages stay isolated
+from your system Python. You need **Python 3.9+** installed first
+([python.org/downloads](https://www.python.org/downloads/) — on Windows tick
+*"Add Python to PATH"* during install).
+
+### Option A — one-shot setup script
+
+From the project root:
+
+| OS | Command |
+|----|---------|
+| **macOS / Linux** | `bash scripts/setup.sh` |
+| **Windows (PowerShell)** | `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1` |
+
+The script creates `.venv/`, installs everything in `requirements.txt` plus
+JupyterLab, and registers a **"Python (RAG Pipelines)"** Jupyter kernel. When it
+finishes, activate the environment (see the activate command for your OS below) and
+run `jupyter lab`.
+
+### Option B — manual steps (same result)
+
+**macOS / Linux (bash / zsh)**
 ```bash
-pip install -r requirements.txt          # or just: pip install numpy openai tiktoken rank-bm25 beautifulsoup4
-cp .env.example .env                      # add your OPENAI_API_KEY (optional)
-jupyter lab                               # open notebooks/01_rag_foundations.ipynb
+python3 -m venv .venv                 # 1. create the virtual environment
+source .venv/bin/activate             # 2. activate it  (prompt now shows (.venv))
+python -m pip install --upgrade pip   # 3. upgrade pip
+pip install -r requirements.txt       # 4. install dependencies
+pip install jupyterlab ipykernel      # 5. (for local notebooks) install Jupyter
+cp .env.example .env                  # 6. optional: add OPENAI_API_KEY to .env
+jupyter lab                           # 7. open notebooks/01_rag_foundations.ipynb
 ```
 
-**No API key? It still runs.** Every module falls back to a deterministic **offline
-mock** provider, so the whole session — chunking comparisons, hybrid retrieval,
-evaluation, even grounded-vs-ungrounded refusal — works with zero keys. Set a real
-key for fluent, high-quality generation.
+**Windows — PowerShell**
+```powershell
+py -3 -m venv .venv                   # 1. create the virtual environment
+.\.venv\Scripts\Activate.ps1          # 2. activate it  (prompt now shows (.venv))
+python -m pip install --upgrade pip   # 3. upgrade pip
+pip install -r requirements.txt       # 4. install dependencies
+pip install jupyterlab ipykernel      # 5. (for local notebooks) install Jupyter
+copy .env.example .env                # 6. optional: add OPENAI_API_KEY to .env
+jupyter lab                           # 7. open notebooks/01_rag_foundations.ipynb
+```
+> If PowerShell blocks activation with a script-execution error, run once:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` and retry, or use Option A.
+
+**Windows — Command Prompt (cmd.exe)**
+```bat
+py -3 -m venv .venv
+.\.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install jupyterlab ipykernel
+copy .env.example .env
+jupyter lab
+```
+
+### Everyday use
+
+| Action | macOS / Linux | Windows (PowerShell) |
+|--------|---------------|----------------------|
+| **Activate** the env | `source .venv/bin/activate` | `.\.venv\Scripts\Activate.ps1` |
+| **Deactivate** | `deactivate` | `deactivate` |
+| Run a notebook | `jupyter lab` → pick the **Python (RAG Pipelines)** kernel | same |
+| Run the smoke test | `python -c "import rag_pipeline; print('ok')"` | same |
+
+> **No API key? It still runs.** Every module falls back to a deterministic **offline
+> mock** provider, so the whole session — chunking comparisons, hybrid retrieval,
+> evaluation, even grounded-vs-ungrounded refusal — works with zero keys inside the
+> venv. Set a real `OPENAI_API_KEY` (in `.env` or your shell) for fluent generation.
 
 ## Quick start (Google Colab)
 
