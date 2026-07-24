@@ -137,9 +137,11 @@ notebook's first cell), so there's nothing to configure:
    `REPO_URL` line if you host your own copy. Alternatively, upload the
    `rag_pipeline/` folder and `data/` via the Colab file browser — the bootstrap
    detects and uses them.)*
-3. For real generation, set `OPENAI_API_KEY` via `getpass` or Colab's secrets
-   (`userdata`) — shown in the "Choose your providers" cell. With no key, it runs on
-   the offline mock automatically.
+3. **Set your OpenAI key once in Colab Secrets** — left sidebar → 🔑 key icon → add
+   a secret named `OPENAI_API_KEY`, and toggle **Notebook access** on. The "Choose
+   your providers" cell reads it automatically and **defaults to the OpenAI stack**
+   (`gpt-4o-mini` + `text-embedding-3-small`). With no key it falls back to the
+   offline mock so the notebook still runs.
 
 ---
 
