@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building RAG Pipelines — C8-W4-S1</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css" id="theme">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+  <style>
+    :root{
+      --load:#3fb6ff; --chunk:#ffb648; --retr:#57d38c; --aug:#c78bff;
+      --gen:#ff6f91; --eval:#f7d51d; --ink:#0b1020;
+    }
+    .reveal { font-size: 30px; }
+    .reveal h1 { font-size: 1.7em; }
+    .reveal h2 { font-size: 1.25em; color:#7fd1ff; text-transform:none; letter-spacing:0; }
+    .reveal h3 { color:#ffd166; text-transform:none; }
+    .reveal section { text-align:left; }
+    .reveal .center { text-align:center; }
+    .reveal ul { display:block; }
+    .reveal li { margin: 4px 0; line-height:1.25; }
+    .reveal small { color:#aab3c5; }
+    .reveal pre { width:100%; box-shadow:none; font-size:0.5em; }
+    .reveal pre code { max-height:520px; padding:14px 16px; border-radius:8px; }
+    .reveal code.inline { background:#222a3f; padding:1px 6px; border-radius:4px; color:#ffd166; font-size:0.85em; }
+
+    .badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:0.5em;
+      font-weight:700; vertical-align:middle; margin-left:8px; }
+    .badge.why { background:#ff6f91; color:#1a0510; }
+    .badge.what{ background:#57d38c; color:#04180d; }
+    .badge.how { background:#3fb6ff; color:#031424; }
+    .min { display:inline-block; background:#f7d51d; color:#1a1500; font-weight:800;
+      padding:4px 14px; border-radius:8px; font-size:0.55em; vertical-align:middle; }
+
+    .why-box { border-left:6px solid #ff6f91; background:rgba(255,111,145,0.10);
+      padding:10px 16px; border-radius:6px; margin:10px 0; }
+    .cause { border-left:6px solid #f7d51d; background:rgba(247,213,29,0.10);
+      padding:10px 16px; border-radius:6px; margin:10px 0; font-size:0.9em;}
+    .nb { display:inline-block; background:#123; border:1px solid #3fb6ff; color:#7fd1ff;
+      padding:4px 12px; border-radius:6px; font-size:0.62em; margin:4px 6px 4px 0; font-family:monospace;}
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:26px; }
+    .two h3 { margin-top:0; }
+    .do  { color:#8affc1; }
+    .dont{ color:#ff9db0; }
+    .pill{ display:inline-block; padding:2px 10px; border-radius:14px; font-size:0.6em; font-weight:700;}
+    .reveal table { font-size:0.72em; }
+    .reveal table th { color:#ffd166; }
+    .reveal .footer { position:fixed; bottom:8px; left:14px; font-size:13px; color:#5b6478; z-index:30; }
+    .reveal .slide-number { background:transparent; color:#5b6478; font-size:14px; }
+    .predict { border:2px dashed #f7d51d; border-radius:8px; padding:8px 14px; margin:10px 0;
+      background:rgba(247,213,29,0.06); font-size:0.85em;}
+    .predict b{ color:#f7d51d;}
+    .tag{font-size:0.6em; color:#8b93a7;}
+    /* pipeline svg */
+    .pipe .box rect { fill:#1a2236; stroke:#39445f; stroke-width:2; }
+    .pipe .box text { fill:#9aa4bd; font-weight:700; }
+    .pipe .box.active rect { stroke-width:4; }
+    .pipe .box.active text { fill:#0b1020; }
+    .pipe .box.load.active   rect{ fill:var(--load);  stroke:#bfe6ff;}
+    .pipe .box.chunk.active  rect{ fill:var(--chunk); stroke:#ffe2ac;}
+    .pipe .box.retr.active   rect{ fill:var(--retr);  stroke:#c2f4d6;}
+    .pipe .box.aug.active    rect{ fill:var(--aug);   stroke:#e6ccff;}
+    .pipe .box.gen.active    rect{ fill:var(--gen);   stroke:#ffc6d3;}
+    .pipe .box.eval.active   rect{ fill:var(--eval);  stroke:#fff0a6;}
+    .pipe .arrow { stroke:#5b6478; stroke-width:2.5; marker-end:url(#ah); }
+    .stageflag{ font-size:0.55em; color:#8b93a7; letter-spacing:2px; text-transform:uppercase;}
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="footer">Building RAG Pipelines · C8-W4-S1 · upGrad Live Session</div>
+  <div class="slides">
+
+  <!-- ============ 1. TITLE / AGENDA ============ -->
+  <section>
+    <section class="center">
+      <h1>Building RAG Pipelines</h1>
+      <h2 style="text-align:center">C8-W4-S1 &nbsp;·&nbsp; upGrad Live Session</h2>
+      <p class="center"><span class="min">180 minutes</span></p>
+      <p class="center" style="margin-top:26px;font-size:0.8em;color:#aab3c5">
+        Retrieval-Augmented Generation as a <b style="color:#7fd1ff">modular pipeline</b><br>
+        Loading → Chunking → Retrieval → Augmentation → Generation → Evaluation
+      </p>
+      <aside class="notes">
+        Welcome. Set the frame in 60 seconds: today we do NOT treat RAG as "an LLM with search bolted on".
+        We treat it as a 6-stage pipeline where every stage is a design decision, and the quality of the
+        final answer is the PRODUCT of all those decisions. Tell them the single sentence they should leave with:
+        "RAG performance is determined by cumulative design decisions across ALL stages, not just the choice of LLM."
+        Mention this is instructor-led + hands-on: 8 notebooks and a rag_pipeline package they will run.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Agenda — how the 180 minutes break down</h2>
+      <table>
+        <tr><th>#</th><th>Section</th><th>Time</th></tr>
+        <tr><td>1</td><td>RAG Foundations</td><td>15 min</td></tr>
+        <tr><td>2</td><td>Loading (ingestion)</td><td>15 min</td></tr>
+        <tr><td>3</td><td>Chunking</td><td>20 min</td></tr>
+        <tr><td>4</td><td>Retrieval</td><td>30 min</td></tr>
+        <tr><td>5</td><td>Augmentation &amp; Generation</td><td>40 min</td></tr>
+        <tr><td>6</td><td>Evaluation</td><td>35 min</td></tr>
+        <tr><td>7</td><td>Advanced RAG Concepts</td><td>15 min</td></tr>
+        <tr><td>8</td><td>Conclusion</td><td>10 min</td></tr>
+      </table>
+      <aside class="notes">
+        Walk the agenda quickly. Note the time weighting is intentional: retrieval + augmentation/generation +
+        evaluation are the biggest blocks because that is where RAG projects actually fail. Don't dwell here — 45 sec.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The pipeline we will build today</h2>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <p class="center tag">Six stages. Each is a lever. We revisit this exact diagram at the start of every section.</p>
+      <aside class="notes">
+        This is the spine of the whole session. Point at each box. Say: data flows left to right; a defect
+        introduced early (say, bad loading or chunking) propagates and gets AMPLIFIED downstream. We will keep
+        coming back to this picture and light up the box we're working on, so you always know where you are in
+        the pipeline. Evaluation loops back — it tells us which earlier stage to fix.
+      </aside>
+    </section>
+
+    <section>
+      <h2>How we'll work today</h2>
+      <ul>
+        <li>🔮 <b>Predict-before-run</b> — guess the output <i>before</i> we execute a cell.</li>
+        <li>⚖️ <b>Compare outputs</b> — across chunk sizes, retrieval strategies, injection methods.</li>
+        <li>🔁 <b>Revisit the diagram</b> — locate every idea inside the 6-stage pipeline.</li>
+        <li>🧩 <b>From-scratch first</b>, then LangChain as a <i>parallel mapping</i> (secondary).</li>
+        <li>➡️ <b>Cause → effect</b> — "bad chunking → poor retrieval → bad answer."</li>
+      </ul>
+      <div class="why-box">Frameworks <b>abstract</b> the plumbing — they do <b>not eliminate</b> the design decisions.</div>
+      <aside class="notes">
+        This slide sets classroom behaviour. Insist on prediction: it surfaces mental models and makes the
+        "compare outputs" moment land. Stress the from-scratch-first philosophy: we implement each stage by hand
+        so students SEE the decision, then show the one-liner LangChain equivalent so they know the mapping —
+        but LangChain is the secondary lens, not the lesson. Repeat: a framework hides the code, not the choice.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 2. FOUNDATIONS ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 1</p>
+      <h1>RAG Foundations</h1>
+      <p><span class="min">15 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Framing section — the whole pipeline is greyed out here because we're zooming out. Goal: everyone agrees
+        on what RAG is, why standalone LLMs are insufficient, and where in the pipeline failures live. 15 min, keep moving.
+      </aside>
+    </section>
+
+    <section>
+      <h2>What is RAG? <span class="badge why">WHY</span></h2>
+      <p><b>Retrieval-Augmented Generation</b> = a <span style="color:var(--retr)">retriever</span> +
+         a <span style="color:var(--gen)">generator</span>.</p>
+      <ul>
+        <li>Retriever: fetch the most relevant chunks from <i>your</i> knowledge base.</li>
+        <li>Generator (LLM): answer the question <b>grounded in</b> those chunks.</li>
+        <li>The LLM is no longer answering from memory — it answers from <b>evidence you supply</b>.</li>
+      </ul>
+      <div class="cause">Mental model: <b>open-book exam</b>. The LLM is smart but forgetful — RAG hands it the right page at the right moment.</div>
+      <aside class="notes">
+        Anchor on the open-book exam metaphor — students remember it. The retriever chooses which page; the
+        generator writes the answer using that page. Everything else today is about making the retriever pick
+        the RIGHT page and making the generator actually USE it and not wander off.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Why not just use a bigger LLM? <span class="badge why">WHY</span></h2>
+      <p>Standalone LLM limitations:</p>
+      <ul>
+        <li>🕰️ <b>Stale knowledge</b> — frozen at training cutoff.</li>
+        <li>🌀 <b>Hallucination</b> — fluent, confident, wrong.</li>
+        <li>🔗 <b>No citations</b> — you can't verify or audit the answer.</li>
+        <li>🔒 <b>No private data</b> — it never saw your internal docs.</li>
+      </ul>
+      <div class="why-box">RAG targets all four: fresh + grounded + citable + private.</div>
+      <aside class="notes">
+        These four are the business case for RAG. Give a one-liner example each: stale = "who won last quarter";
+        hallucination = made-up API endpoint; citations = compliance/legal need the source; private = your Acme
+        Cloud SLA doc is not on the public web. Ask the room which of these bites them most at work.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The modular pipeline <span class="badge what">WHAT</span></h2>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <table>
+        <tr><th>Stage</th><th>Job</th></tr>
+        <tr><td style="color:var(--load)">Loading</td><td>Ingest raw sources into clean documents + metadata</td></tr>
+        <tr><td style="color:var(--chunk)">Chunking</td><td>Split documents into retrievable units</td></tr>
+        <tr><td style="color:var(--retr)">Retrieval</td><td>Find the most relevant chunks for a query</td></tr>
+        <tr><td style="color:var(--aug)">Augmentation</td><td>Inject chunks into the prompt (context assembly)</td></tr>
+        <tr><td style="color:var(--gen)">Generation</td><td>LLM produces a grounded, cited answer</td></tr>
+        <tr><td style="color:var(--eval)">Evaluation</td><td>Measure quality, diagnose which stage failed</td></tr>
+      </table>
+      <aside class="notes">
+        This is the table version of the diagram. The key insight: these are SEPARABLE concerns you can test and
+        swap independently. That modularity is exactly what lets us debug — we can point at one stage. Note
+        augmentation vs generation are distinct (we treat them together timing-wise but they are different jobs).
+      </aside>
+    </section>
+
+    <section>
+      <h2>End-to-end example flow <span class="badge what">WHAT</span></h2>
+      <p class="tag">Query: "Does Acme Cloud offer a 99.99% SLA?"</p>
+      <ol style="font-size:0.85em">
+        <li><b style="color:var(--load)">Load</b> Acme SLA + pricing docs → clean text + metadata.</li>
+        <li><b style="color:var(--chunk)">Chunk</b> the SLA doc into ~300-token passages.</li>
+        <li><b style="color:var(--retr)">Retrieve</b> top passages by similarity to the query.</li>
+        <li><b style="color:var(--aug)">Augment</b> — build a prompt: system rules + retrieved passages + question.</li>
+        <li><b style="color:var(--gen)">Generate</b> — "Yes, the Enterprise tier offers 99.99% [SLA §2.1]."</li>
+        <li><b style="color:var(--eval)">Evaluate</b> — is it faithful? did we retrieve the right §?</li>
+      </ol>
+      <p class="nb">→ Notebook 01 &amp; 08 run this full flow end-to-end</p>
+      <aside class="notes">
+        Trace one concrete question through all six boxes. This makes the abstract pipeline tangible. The Acme
+        Cloud fictional corpus (pricing, security, SLA, API, onboarding, FAQ) is what every notebook uses, so
+        this exact query returns throughout the day. Notebook 01 introduces it; Notebook 08 wires it end-to-end.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Where do failures occur? <span class="badge why">WHY</span></h2>
+      <p class="why-box"><b>Recurring question of the day:</b> "What happens if THIS step is poorly designed?"</p>
+      <table style="font-size:0.62em">
+        <tr><th>Stage</th><th>If poorly designed…</th></tr>
+        <tr><td style="color:var(--load)">Loading</td><td>Garbled text, lost tables, no metadata → nothing downstream can recover it</td></tr>
+        <tr><td style="color:var(--chunk)">Chunking</td><td>Ideas split or diluted → retriever can't match them</td></tr>
+        <tr><td style="color:var(--retr)">Retrieval</td><td>Wrong chunks surface → the LLM is grounded in the wrong evidence</td></tr>
+        <tr><td style="color:var(--aug)">Augmentation</td><td>Context truncated / mis-ordered → key fact never reaches the model</td></tr>
+        <tr><td style="color:var(--gen)">Generation</td><td>Weak prompt → model ignores context, hallucinates anyway</td></tr>
+        <tr><td style="color:var(--eval)">Evaluation</td><td>No metrics → you ship bugs blindly, can't tell which stage broke</td></tr>
+      </table>
+      <div class="cause">Errors <b>compound</b>: bad chunking → poor retrieval → bad answer. Fix the earliest broken stage first.</div>
+      <aside class="notes">
+        This is the thesis slide of the whole session — spend a full minute. Every later section returns to its
+        row here. Emphasise compounding: a 90% accurate stage times a 90% stage times a 90% stage is already
+        ~73%. And a downstream stage CANNOT fix an upstream defect — if loading dropped a table, no reranker
+        brings it back. This is why we debug earliest-stage-first.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 3. LOADING ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 2</p>
+      <h1 style="color:var(--load)">Loading</h1>
+      <p><span class="min">15 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load active"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Light up Loading. This is the least glamorous, most under-invested stage — and it silently determines the
+        ceiling of everything else. 15 min. Predict-before-run reminder: before we run the loader on a PDF, ask
+        the class what they think happens to the tables and footers.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Why ingestion matters <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>Loading is the <b>front door</b> — everything downstream sees only what you let in.</li>
+        <li>The retriever can only find what was <b>ingested cleanly</b> and <b>preserved</b>.</li>
+      </ul>
+      <div class="why-box"><b>What happens if loading is poorly designed?</b> Garbled encoding, merged columns,
+        dropped tables, and lost structure become <b>permanent</b> — no downstream stage can recover deleted information.</div>
+      <div class="cause">Cause → effect: raw PDF dump → headers/footers pollute chunks → retriever matches noise → wrong answer.</div>
+      <aside class="notes">
+        Drive home irreversibility. If a table becomes a wall of numbers with no rows, the meaning is gone before
+        chunking even starts. Ask: "what happens if this step is poorly designed?" — answer: you cap the quality
+        of the entire system and you can't tell later, because the text still LOOKS fine.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Formats &amp; sources <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3>Sources</h3>
+          <ul>
+            <li>📄 <b>PDF</b> — layout, tables, columns</li>
+            <li>🌐 <b>HTML</b> — nav/ads/boilerplate noise</li>
+            <li>📝 <b>Markdown</b> — structure is a gift (headings!)</li>
+            <li>🔌 <b>APIs / DBs</b> — JSON, tickets, records</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Each needs care</h3>
+          <ul>
+            <li>PDF → extract text order, keep tables</li>
+            <li>HTML → strip chrome, keep main content</li>
+            <li>MD → use headings as natural boundaries</li>
+            <li>API → flatten + attach source metadata</li>
+          </ul>
+        </div>
+      </div>
+      <p class="tag">Every format is a different extraction problem — there is no universal loader.</p>
+      <aside class="notes">
+        The point: "load a document" is deceptively simple. HTML is mostly boilerplate you must remove; PDFs
+        reorder text and murder tables; Markdown hands you structure for free. Loaders in our package handle these
+        per-format. Tell them: the effort you invest per format pays off at retrieval time.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Do's &amp; Don'ts <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3 class="do">✅ Do</h3>
+          <ul>
+            <li>Clean text (whitespace, encoding, hyphenation)</li>
+            <li><b>Preserve structure</b> — headings, lists, tables</li>
+            <li>Attach <b>metadata</b>: source, title, section, date, URL</li>
+            <li>Normalise unicode; fix mojibake early</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="dont">❌ Don't</h3>
+          <ul>
+            <li>Dump raw bytes / raw PDF text blindly</li>
+            <li>Ignore encoding → � garbage in embeddings</li>
+            <li>Keep nav bars, cookie banners, page numbers</li>
+            <li>Throw away the source → no citations later</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cause">Metadata is not optional: it powers <b>filtering</b> (retrieval) and <b>citations</b> (generation).</div>
+      <aside class="notes">
+        Single most important do: KEEP METADATA. Source + section is what makes "[SLA §2.1]" citations possible
+        two stages later, and what enables metadata filtering in retrieval. Failure mode to name: the "raw dump"
+        anti-pattern where people str() a PDF and move on — it feels done but poisons everything.
+      </aside>
+    </section>
+
+    <section>
+      <h2>From scratch → LangChain <span class="badge how">HOW</span></h2>
+      <div class="predict">🔮 <b>Predict:</b> our manual PDF loader vs a LangChain <code class="inline">PyPDFLoader</code> —
+        will the extracted text be identical? Where might they differ?</div>
+      <pre><code class="language-python"># From scratch — you control every decision
+from rag_pipeline.loaders import load_pdf, load_html, Document
+
+doc = load_pdf("data/acme_sla.pdf")          # -> Document(text, metadata)
+doc.metadata                                  # {'source':'acme_sla.pdf','section':'SLA'}
+clean = load_html("...", strip_boilerplate=True)
+
+# LangChain — parallel mapping (secondary lens)
+from langchain_community.document_loaders import PyPDFLoader
+lc_docs = PyPDFLoader("data/acme_sla.pdf").load()   # list[Document]</code></pre>
+      <p class="nb">→ Notebook 02 · loaders.py</p>
+      <div class="why-box"><b>Flexibility vs abstraction:</b> the loader one-liner is convenient, but it made
+        cleaning/metadata choices <i>for you</i>. Know what it chose.</div>
+      <aside class="notes">
+        From-scratch FIRST so they see the choices: strip boilerplate? keep tables? which metadata? Then show the
+        LangChain loader as the same idea in one line — the parallel mapping. Punchline: the framework didn't
+        remove the decision, it picked a default. Have them run Notebook 02 and diff the two outputs.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 4. CHUNKING ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 3</p>
+      <h1 style="color:var(--chunk)">Chunking</h1>
+      <p><span class="min">20 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk active"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Chunking box lit. This is where most "why is my RAG bad?" problems are actually born, and it's the most
+        under-appreciated. 20 min. We will compare chunk strategies side by side — set that expectation now.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The chunking problem <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>We can't embed or retrieve a whole 40-page doc — too big, too diffuse.</li>
+        <li>We must split it into units small enough to embed, big enough to <b>mean something</b>.</li>
+        <li>The <b>chunk</b> is the atomic unit of retrieval — you retrieve chunks, not documents.</li>
+      </ul>
+      <div class="why-box"><b>What happens if chunking is poorly designed?</b> The right answer may be split across
+        two chunks (so neither matches), or buried in a huge chunk (so its embedding is diluted). Retrieval then
+        cannot win — <b>the ceiling is set here</b>.</div>
+      <aside class="notes">
+        Reframe: a chunk is what gets embedded and retrieved. If a fact and its context land in different chunks,
+        the retriever sees half-truths. If a chunk is a whole page, its single embedding vector is an average of
+        ten topics — it matches everything weakly and nothing strongly. This is the cause of "retrieval looks
+        fine but answers are vague."
+      </aside>
+    </section>
+
+    <section>
+      <h2>Strategies <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.66em">
+        <tr><th>Strategy</th><th>How</th><th>Trade-off</th></tr>
+        <tr><td><b>Fixed-size</b></td><td>Every N tokens/chars, blind</td><td>Simple, fast · cuts mid-sentence</td></tr>
+        <tr><td><b>Recursive</b></td><td>Split on ¶ → sentence → word, respecting separators</td><td>Great default · respects structure</td></tr>
+        <tr><td><b>Semantic</b></td><td>Split where embedding similarity drops (topic shift)</td><td>Best boundaries · slower, costlier</td></tr>
+      </table>
+      <div class="cause">Rule of thumb: start with <b>recursive</b>; reach for <b>semantic</b> when boundaries really matter and budget allows.</div>
+      <aside class="notes">
+        Fixed = naive baseline; useful to show WHY it hurts. Recursive is the workhorse — it tries paragraph
+        breaks first, only cutting finer when a piece is still too big, so it preserves natural structure. Semantic
+        is the sophisticated option: embed sentences, cut where topic shifts — expensive but boundary-aware. Tell
+        them 90% of projects live on recursive.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Chunk size vs overlap <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3>Size</h3>
+          <ul>
+            <li><b class="dont">Too large</b> → embedding is an average → <b>diluted</b>, matches weakly</li>
+            <li><b class="dont">Too small</b> → idea <b>fragmented</b> → missing context to answer</li>
+            <li>Sweet spot: usually ~200–500 tokens (data-dependent)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Overlap</h3>
+          <ul>
+            <li>Repeat a slice between neighbours (~10–20%)</li>
+            <li>Stops facts being cut exactly at a boundary</li>
+            <li>Too much → duplicate hits, wasted context budget</li>
+          </ul>
+        </div>
+      </div>
+      <div class="predict">🔮 <b>Predict:</b> for our Acme SLA, will 128-token or 512-token chunks retrieve the
+        "99.99%" clause better? Why?</div>
+      <aside class="notes">
+        This is the central chunking trade-off — draw it as a dial. Large chunks: one vector summarising many
+        ideas, low precision. Small chunks: precise but context-starved, the model gets a fragment it can't
+        reason over. Overlap is the safety net against boundary cuts. Have them predict before Notebook 03 runs
+        the comparison.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Do's &amp; Don'ts <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3 class="do">✅ Do</h3>
+          <ul>
+            <li>Preserve <b>semantic boundaries</b> (paragraphs, sections)</li>
+            <li>Keep heading/section in chunk metadata</li>
+            <li>Tune size to your content &amp; embedding model</li>
+            <li>Add modest overlap</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="dont">❌ Don't</h3>
+          <ul>
+            <li>Cut mid-sentence / mid-table</li>
+            <li>Make chunks so large the embedding is diluted</li>
+            <li>Make chunks so small ideas fragment</li>
+            <li>Use one size for every document type</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cause">Cause → effect: <b>bad chunking → poor retrieval → bad answer.</b> The whole chain starts here.</div>
+      <aside class="notes">
+        Reinforce the flagship cause→effect chain. The don'ts map directly to failure modes we'll see in
+        evaluation: fragmented ideas → low recall; diluted embeddings → low precision. Emphasise "one size fits
+        all" is a real anti-pattern — an API reference chunks very differently from prose FAQ.
+      </aside>
+    </section>
+
+    <section>
+      <h2>From scratch → LangChain <span class="badge how">HOW</span></h2>
+      <pre><code class="language-python">from rag_pipeline.chunking import (
+    fixed_chunk, recursive_chunk, semantic_chunk)
+
+a = fixed_chunk(doc.text, size=128)                       # blind
+b = recursive_chunk(doc.text, size=300, overlap=40)       # structure-aware
+c = semantic_chunk(doc.text, embedder, threshold=0.75)    # topic-aware
+
+for name, chunks in [("fixed",a),("recursive",b),("semantic",c)]:
+    print(name, len(chunks), "chunks", "| first:", chunks[0][:60])
+
+# LangChain — parallel mapping
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=40)</code></pre>
+      <p class="nb">→ Notebook 03 · chunking.py</p>
+      <div class="why-box"><b>Compare outputs:</b> run all three on the same doc, eyeball where each cuts.
+        The differences are the lesson.</div>
+      <aside class="notes">
+        The compare-outputs beat: print chunk counts and the first chunk from each strategy on the SAME document.
+        Students SEE fixed cutting mid-sentence, recursive respecting paragraphs, semantic grouping by topic. Then
+        the LangChain splitter is literally the same recursive idea. Frameworks abstract, don't eliminate — you
+        still choose size, overlap, separators.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 5. RETRIEVAL ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 4</p>
+      <h1 style="color:var(--retr)">Retrieval</h1>
+      <p><span class="min">30 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr active"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Retrieval lit — the heart of RAG, 30 min. This is where "just use cosine top-k" quietly fails and where
+        hybrid + reranking earn their keep. Big theme: retrieve WIDE, rerank NARROW.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Why retrieval is the crux <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>The generator can only be as good as the evidence it's given.</li>
+        <li>Retrieval decides <b>which evidence</b> — the single highest-leverage stage.</li>
+      </ul>
+      <div class="why-box"><b>What happens if retrieval is poorly designed?</b> You feed the LLM the wrong or
+        incomplete chunks. It then either hallucinates or confidently answers from irrelevant context —
+        "garbage in, grounded garbage out."</div>
+      <div class="cause">"An LLM given the right paragraph rarely fails. An LLM given the wrong paragraph rarely succeeds."</div>
+      <aside class="notes">
+        Set stakes: most RAG debugging ends here. If you retrieve the wrong chunk, no prompt engineering saves
+        you. Conversely, great retrieval makes an average LLM look brilliant. This is why we spend 30 minutes and
+        why evaluation later separates retrieval metrics from generation metrics.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Embeddings &amp; similarity <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>An <b>embedding</b> maps text → a vector; similar meaning → nearby vectors.</li>
+        <li><b>Cosine similarity</b> = angle between query &amp; chunk vectors (1 = identical direction).</li>
+        <li>Retrieval = embed the query, find nearest chunk vectors.</li>
+      </ul>
+      <pre><code class="language-python">from rag_pipeline.embeddings import embed
+import numpy as np
+def cosine(a,b): return a@b/(np.linalg.norm(a)*np.linalg.norm(b))
+q = embed("Does Acme offer a 99.99% SLA?")
+scores = [(cosine(q, embed(c)), c) for c in chunks]   # rank desc</code></pre>
+      <p class="nb">→ Notebook 04 · embeddings.py (text-embedding-3-small default)</p>
+      <aside class="notes">
+        Keep the math intuitive: meaning becomes geometry; retrieval becomes "find nearby points." Cosine ignores
+        magnitude, compares direction. Mention the model: text-embedding-3-small by default, with an offline mock
+        fallback so the notebook runs without keys. Predict: which Acme chunk scores highest for the SLA query?
+      </aside>
+    </section>
+
+    <section>
+      <h2>Vector stores (conceptual) <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>A <b>vector store</b> indexes millions of chunk vectors for fast nearest-neighbour search (ANN).</li>
+        <li>You don't compare against every vector — the index prunes the search.</li>
+        <li>Stores metadata alongside vectors → enables <b>filtering</b>.</li>
+        <li>Examples: FAISS, Chroma, pgvector, Pinecone, Weaviate (we use a simple in-memory store).</li>
+      </ul>
+      <p class="nb">→ vectorstore.py (add, search, filter)</p>
+      <aside class="notes">
+        Conceptual only — don't rabbit-hole on ANN algorithms. The idea: a searchable index of vectors + their
+        metadata. Our package ships a tiny in-memory store so the mechanics are visible; in production you'd swap
+        in FAISS/Chroma/pgvector. The store also holds metadata, which sets up filtering two slides on.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Dense retrieval &amp; its blind spot <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3>Dense (semantic)</h3>
+          <ul>
+            <li>Embedding similarity</li>
+            <li>Great at <b>meaning / paraphrase</b></li>
+            <li>"cost" ≈ "pricing" ✅</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="dont">Blind spot</h3>
+          <ul>
+            <li>Misses exact keywords, IDs, codes</li>
+            <li>"SKU-4471", "§2.1", rare terms</li>
+            <li>Vector for a rare token is weak</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cause">This is exactly what <b>keyword (BM25)</b> retrieval is good at → motivates <b>hybrid</b>.</div>
+      <aside class="notes">
+        Dense retrieval's superpower (semantics) is also its weakness (exact terms). Rare identifiers, part
+        numbers, legal section refs — embeddings smear these. That's the setup for hybrid: pair dense with BM25
+        keyword search so you get both meaning AND exact match. Predict: which method finds "§2.1" better?
+      </aside>
+    </section>
+
+    <section>
+      <h2>Hybrid search: BM25 + dense <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li><b>BM25</b> — classic sparse keyword scoring (exact terms, TF-IDF family).</li>
+        <li><b>Dense</b> — semantic similarity.</li>
+        <li>Fuse the two ranked lists with <b>Reciprocal Rank Fusion (RRF)</b>:</li>
+      </ul>
+      <pre><code class="language-python"># RRF: rank-based, score-scale agnostic
+def rrf(rankings, k=60):
+    fused = {}
+    for ranked in rankings:                 # each is a list of doc_ids best->worst
+        for rank, doc_id in enumerate(ranked):
+            fused[doc_id] = fused.get(doc_id, 0) + 1/(k + rank + 1)
+    return sorted(fused, key=fused.get, reverse=True)
+
+from rag_pipeline.retrieval import HybridRetriever   # BM25 + dense, RRF inside</code></pre>
+      <p class="nb">→ Notebook 04 · retrieval.py (DenseRetriever, BM25Retriever, HybridRetriever)</p>
+      <aside class="notes">
+        Why RRF and not "average the scores": BM25 and cosine live on totally different scales — averaging is
+        meaningless. RRF only uses RANK position, so it fuses fairly. A doc ranked high by either method bubbles
+        up; agreement compounds. This is the single most practical retrieval upgrade over naive top-k.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Metadata filtering <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>Constrain the search space <b>before</b> similarity: <code class="inline">source="SLA"</code>,
+            <code class="inline">date&gt;2025</code>, <code class="inline">tier="Enterprise"</code>.</li>
+        <li>Turns "search everything" into "search the right shelf."</li>
+        <li>Cheap, huge precision win — this is why we kept metadata at <b>loading</b>.</li>
+      </ul>
+      <pre><code class="language-python">results = store.search(q, k=20, where={"source": "acme_sla"})</code></pre>
+      <div class="cause">Callback: metadata you preserved in <b>Stage 1</b> pays off here in <b>Stage 3</b>.</div>
+      <aside class="notes">
+        Explicitly connect back to loading — this is the payoff for keeping metadata. Filtering removes obviously
+        irrelevant candidates so similarity works on a clean set. Example: a question about Enterprise pricing
+        shouldn't retrieve Free-tier chunks. Cheap and powerful.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Reranking: retrieve wide, rerank narrow <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>First-stage retrieval is fast but coarse → pull a <b>wide</b> candidate set (k=50).</li>
+        <li>A <b>reranker</b> scores each candidate against the query more precisely → keep top 5.</li>
+        <li><b>Cross-encoder</b>: query+chunk through one model → accurate, slower.</li>
+        <li><b>LLM reranker</b>: ask an LLM to rank — <i>pointwise</i> (score each) or <i>pairwise</i> (compare pairs).</li>
+      </ul>
+      <pre><code class="language-python">from rag_pipeline.retrieval import CrossEncoderReranker, LLMReranker
+cands = hybrid.retrieve(q, k=50)          # wide
+top   = CrossEncoderReranker().rerank(q, cands, k=5)   # narrow</code></pre>
+      <p class="nb">→ Notebook 04 · CrossEncoderReranker, LLMReranker</p>
+      <aside class="notes">
+        The mantra of the section: RETRIEVE WIDE, RERANK NARROW. Bi-encoder (embeddings) is fast because query and
+        doc are encoded separately; a cross-encoder reads them TOGETHER, so it's far more accurate but too slow to
+        run on the whole corpus — perfect as a second stage on 50 candidates. LLM rerankers: pointwise scores each
+        doc, pairwise compares two at a time (more accurate, more calls).
+      </aside>
+    </section>
+
+    <section>
+      <h2>Do's &amp; Don'ts <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3 class="do">✅ Do</h3>
+          <ul>
+            <li>Optimise <b>recall first, then precision</b></li>
+            <li>Retrieve wide → rerank narrow</li>
+            <li>Combine dense + BM25 (hybrid)</li>
+            <li>Use metadata filters</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="dont">❌ Don't</h3>
+          <ul>
+            <li>Rely only on top-k cosine similarity</li>
+            <li>Set k too small (miss the answer entirely)</li>
+            <li>Ignore exact-match / keyword queries</li>
+            <li>Skip reranking on high-stakes queries</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cause"><b>Recall then precision:</b> first make sure the answer is <i>somewhere</i> in your
+        candidates (recall); then push it to the <i>top</i> (precision, via reranking).</div>
+      <aside class="notes">
+        Explain the ordering: if the right chunk isn't even in your candidate set, no reranker can save you —
+        that's a recall failure, fix k / hybrid / filters. Once it's IN the set, reranking is a precision problem.
+        The cardinal sin is "top-3 cosine and ship it." Predict-then-run: compare dense-only vs hybrid vs
+        hybrid+rerank on a tricky Acme query in Notebook 04.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 6. AUGMENTATION & GENERATION ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 5</p>
+      <h1><span style="color:var(--aug)">Augmentation</span> &amp; <span style="color:var(--gen)">Generation</span></h1>
+      <p><span class="min">40 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug active"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Two boxes in play — augmentation (assembling context) then generation (the LLM answering). Diagram lights
+        augmentation now; we'll flip to generation mid-section. 40 min, the biggest block. Core message: retrieval
+        found the evidence; augmentation decides HOW it reaches the model, and generation decides whether the
+        model USES it faithfully.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Augmentation ≠ Retrieval <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.72em">
+        <tr><th></th><th>Retrieval</th><th>Augmentation</th></tr>
+        <tr><td>Question</td><td><i>Which</i> chunks?</td><td><i>How</i> do they enter the prompt?</td></tr>
+        <tr><td>Output</td><td>Ranked chunks</td><td>The final assembled prompt</td></tr>
+        <tr><td>Failure</td><td>Wrong evidence</td><td>Right evidence, badly presented / truncated</td></tr>
+      </table>
+      <div class="why-box"><b>What happens if augmentation is poorly designed?</b> You retrieved the perfect chunk,
+        then buried it, truncated it, or ordered it so the model overlooks it. Great retrieval, wasted.</div>
+      <aside class="notes">
+        Students conflate these constantly. Retrieval = selection. Augmentation = presentation/assembly: ordering,
+        formatting, de-duping, fitting the context window, keeping source labels. A perfect retrieval can still be
+        ruined by dumping 50 chunks in random order and blowing the token budget.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The context-injection problem <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>Context windows are finite — you can't stuff everything.</li>
+        <li>Order matters: models attend unevenly ("lost in the middle").</li>
+        <li>Too much context → noise, cost, latency; too little → missing the answer.</li>
+      </ul>
+      <div class="cause">How you inject the chunks is itself a <b>design decision</b> — enter stuffing / map-reduce / refine.</div>
+      <aside class="notes">
+        Name "lost in the middle" — models recall the start and end of a long context better than the middle, so
+        put the strongest chunk first or last. The injection strategy is a real fork in the road, not an
+        implementation detail. Set up the next three slides.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Injection strategies <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.62em">
+        <tr><th>Strategy</th><th>How</th><th>When</th></tr>
+        <tr><td><b>Stuffing</b></td><td>Concatenate all chunks into one prompt</td><td>Few chunks, fits window — the default</td></tr>
+        <tr><td><b>Map-Reduce</b></td><td>Answer per chunk (map) → combine (reduce)</td><td>Many chunks, parallel, scalable</td></tr>
+        <tr><td><b>Refine</b></td><td>Draft, then iteratively improve with each chunk</td><td>Long-form, quality &gt; latency</td></tr>
+      </table>
+      <div class="predict">🔮 <b>Predict:</b> for a question answered by ONE Acme paragraph — which strategy is
+        best on cost <i>and</i> quality? What about a question spanning 8 docs?</div>
+      <p class="nb">→ Notebook 05 · augmentation.py (stuff / map_reduce / refine)</p>
+      <aside class="notes">
+        Stuffing: simplest, one call, but breaks when context overflows. Map-reduce: scales to many docs, parallel
+        calls, but loses cross-chunk context and costs N calls. Refine: highest quality on synthesis tasks,
+        sequential and slow. Trade-off is cost/latency vs completeness. Have them predict before Notebook 05 runs
+        all three.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Return sources with the answer <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>Every claim should carry its <b>citation</b> back to a chunk's metadata.</li>
+        <li>Enables verification, trust, debugging, compliance.</li>
+        <li>Recall: only possible because we <b>preserved metadata at loading</b>.</li>
+      </ul>
+      <pre><code class="language-python">answer = {
+  "text": "Enterprise tier includes a 99.99% uptime SLA.",
+  "sources": [{"source": "acme_sla", "section": "2.1", "score": 0.88}]
+}</code></pre>
+      <div class="cause">A RAG answer without sources is just a hallucination you happen to trust.</div>
+      <aside class="notes">
+        Non-negotiable in production: carry sources through. It's the difference between an auditable system and a
+        confident guess. It also supercharges debugging — when an answer is wrong you immediately see WHICH chunk
+        misled it, telling you whether to blame retrieval or generation. Third callback to loading-stage metadata.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Generation: the LLM's role <span class="badge what">WHAT · </span><span class="badge gen" style="background:var(--gen);color:#1a0510">GEN</span></h2>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen active"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <ul>
+        <li>The LLM <b>synthesises</b> an answer from provided context — it should not add outside facts.</li>
+        <li>Its job: read evidence, reason, write grounded prose, cite.</li>
+        <li>Model choice matters far less than the <b>evidence + prompt</b> you give it.</li>
+      </ul>
+      <aside class="notes">
+        Flip the diagram to Generation now. Reframe the LLM's role: not "the brain that knows things" but "the
+        reasoner over evidence you supplied." This is the setup for the takeaway — swapping GPT for Claude helps
+        far less than fixing chunking/retrieval. Default model gpt-4o-mini; Claude adapter available; mock fallback.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Prompt design with context <span class="badge what">WHAT</span></h2>
+      <pre><code class="language-python">SYSTEM = """You are a support assistant for Acme Cloud.
+Answer ONLY using the context below. Cite sources as [source §section].
+If the context is insufficient, reply exactly: "I don't know based on the provided documents."
+Do not use outside knowledge."""
+
+prompt = f"{SYSTEM}\n\n# Context\n{numbered_chunks}\n\n# Question\n{query}"</code></pre>
+      <ul>
+        <li>Explicit <b>instruction</b> to ground; explicit <b>citation</b> format.</li>
+        <li>Explicit <b>escape hatch</b>: allow "I don't know."</li>
+      </ul>
+      <p class="nb">→ Notebook 05 · generation.py (grounded prompts + citations)</p>
+      <aside class="notes">
+        Walk each line: "ONLY using context" fights hallucination; the citation format makes sources verifiable;
+        the "I don't know" clause is the single highest-ROI line — it gives the model permission to abstain
+        instead of inventing. Numbering chunks lets it cite by index. This is prompt design as a pipeline stage,
+        not an afterthought.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Augmentation &amp; generation failure modes <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>🌀 <b>Hallucination despite context</b> — model ignores evidence, uses training memory.</li>
+        <li>✂️ <b>Context overflow</b> — the key chunk truncated out of the window.</li>
+        <li>🔇 <b>Lost in the middle</b> — right chunk present but positionally ignored.</li>
+        <li>🎭 <b>Over-confidence</b> — no "I don't know", so it fabricates when unsure.</li>
+        <li>🧾 <b>Uncited claims</b> — can't trace or verify.</li>
+      </ul>
+      <div class="cause"><b>What happens if generation is poorly designed?</b> The model wanders off the evidence — the
+        one thing RAG existed to prevent.</div>
+      <aside class="notes">
+        Each of these maps to a fix on the next slide. The subtle one: hallucination WITH good context — the model
+        pattern-completes from training instead of reading. Weak prompts cause it. This is why grounding
+        instructions and abstention aren't optional polish; they're the mechanism.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Safe prompt engineering <span class="badge how">HOW</span></h2>
+      <div class="two">
+        <div>
+          <h3 class="do">✅ Techniques</h3>
+          <ul>
+            <li>Instruction prompts ("use only context")</li>
+            <li>Require <b>citations</b> per claim</li>
+            <li><b>Grounding</b> + abstention: "answer 'I don't know' if context insufficient"</li>
+            <li>Number chunks; put strongest first/last</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="dont">❌ Avoid</h3>
+          <ul>
+            <li>Open-ended "answer the question"</li>
+            <li>No source constraint</li>
+            <li>No abstention path → forced to guess</li>
+            <li>Dumping unordered chunks</li>
+          </ul>
+        </div>
+      </div>
+      <div class="predict">🔮 <b>Compare:</b> same query, same chunks — <b>with</b> vs <b>without</b> the grounding
+        prompt. Watch the hallucination appear/disappear.</div>
+      <aside class="notes">
+        Run the with/without comparison live — it's the most memorable moment of the section. Feed an
+        unanswerable question: the naive prompt fabricates; the grounded prompt says "I don't know." Same model,
+        same context — the ONLY difference is prompt design. This proves generation is a design decision.
+      </aside>
+    </section>
+
+    <section>
+      <h2>LangChain chains — parallel mapping <span class="badge how">HOW</span></h2>
+      <pre><code class="language-python"># From scratch — explicit, debuggable
+ctx    = augment(query, top_chunks, strategy="stuff")
+answer = generate(query, ctx, system=GROUNDED_SYSTEM, cite=True)
+
+# LangChain — same idea, abstracted
+from langchain.chains import RetrievalQA
+qa = RetrievalQA.from_chain_type(
+        llm, chain_type="stuff",              # or map_reduce / refine
+        retriever=vs.as_retriever(),
+        return_source_documents=True)         # <- sources, like ours</code></pre>
+      <ul>
+        <li><code class="inline">chain_type</code> = our stuff / map_reduce / refine.</li>
+        <li>The chain still needs <i>your</i> prompt, k, strategy, grounding.</li>
+      </ul>
+      <p class="nb">→ Notebook 05</p>
+      <div class="why-box">The chain hides the wiring, not the decisions. Same knobs, fewer lines.</div>
+      <aside class="notes">
+        Show the one-to-one mapping: chain_type IS our injection strategy; return_source_documents IS our source
+        return. Reinforce the day's refrain — LangChain is a convenience layer over the exact decisions we made by
+        hand. If you don't know what the from-scratch version does, you can't debug the chain.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 7. EVALUATION ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 6</p>
+      <h1 style="color:var(--eval)">Evaluation</h1>
+      <p><span class="min">35 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval active"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Evaluation lit — note it loops back to earlier stages. 35 min. Message: you cannot improve what you don't
+        measure, and crucially, evaluation tells you WHICH stage to fix. Without it you tune randomly.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Why evaluate? <span class="badge why">WHY</span></h2>
+      <ul>
+        <li>RAG has many moving parts — "it feels better" is not a metric.</li>
+        <li>Evaluation <b>localises</b> failure: retrieval vs generation vs chunking.</li>
+        <li>It's the feedback loop that closes the pipeline.</li>
+      </ul>
+      <div class="why-box"><b>What happens if evaluation is poorly designed (or skipped)?</b> You ship regressions
+        blindly, tune the wrong stage, and can't tell if a change helped or hurt.</div>
+      <aside class="notes">
+        The unsexy stage that makes all the others improvable. Emphasise localisation: a low context-precision
+        points at retrieval/chunking; a low faithfulness with good context points at generation. Evaluation turns
+        "my RAG is bad" into "my retrieval recall@5 is 0.4, fix chunking."
+      </aside>
+    </section>
+
+    <section>
+      <h2>Failure modes to measure <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>🎯 <b>Retrieval errors</b> — right chunk missing or ranked low.</li>
+        <li>🌀 <b>Hallucination</b> — claims not supported by context.</li>
+        <li>🌫️ <b>Context noise</b> — irrelevant chunks dilute the answer.</li>
+      </ul>
+      <div class="cause">Each failure mode has a different metric — and points at a different stage to fix.</div>
+      <aside class="notes">
+        Tie each failure to a stage: retrieval errors → retrieval/chunking; hallucination → generation prompt;
+        context noise → retrieval precision / reranking. This mapping is the diagnostic skeleton we'll formalise
+        with metrics next.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Latency &amp; cost breakdown <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.66em">
+        <tr><th>Stage</th><th>Latency</th><th>Cost driver</th></tr>
+        <tr><td>Embed query</td><td>low</td><td>embedding call</td></tr>
+        <tr><td>Vector search</td><td>low</td><td>index size</td></tr>
+        <tr><td>Rerank (cross-enc / LLM)</td><td>med–high</td><td>#candidates × model</td></tr>
+        <tr><td>Generation</td><td>high</td><td>input tokens (context!) + output</td></tr>
+      </table>
+      <div class="cause">More context → better grounding <b>but</b> more tokens = more cost + latency. Quality is a budget.</div>
+      <aside class="notes">
+        Make it real: generation input tokens dominate cost, and context IS input tokens — so stuffing 50 chunks
+        is a cost decision, not just a quality one. Reranking adds latency proportional to candidate count. Good
+        RAG engineering is Pareto: maximise faithfulness per dollar and per second, not in the abstract.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Answer-quality metrics <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li><b>Relevance</b> — does the answer address the question?</li>
+        <li><b>Faithfulness</b> — is every claim supported by the retrieved context? (anti-hallucination)</li>
+        <li><b>Context precision</b> — of retrieved chunks, how many are relevant?</li>
+        <li><b>Context recall</b> — of the relevant chunks, how many did we retrieve?</li>
+      </ul>
+      <div class="cause">Faithfulness answers "did it make things up?" Context precision/recall answer "did retrieval do its job?"</div>
+      <aside class="notes">
+        Distinguish clearly: faithfulness is a GENERATION metric (grounded in given context, regardless of whether
+        context was right); context precision/recall are RETRIEVAL metrics. A faithful answer to bad context is
+        still wrong — you need both. This separation is what lets you localise the bug.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Retrieval metrics <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li><b>Precision@k</b> — fraction of top-k that are relevant.</li>
+        <li><b>Recall@k</b> — fraction of all relevant items found in top-k.</li>
+        <li><b>MRR</b> — Mean Reciprocal Rank: 1/rank of the first relevant hit.</li>
+      </ul>
+      <pre><code class="language-python">from rag_pipeline.evaluation import precision_at_k, recall_at_k, mrr
+precision_at_k(retrieved, relevant, k=5)
+recall_at_k(retrieved, relevant, k=5)
+mrr(retrieved, relevant)</code></pre>
+      <p class="nb">→ Notebook 06 · evaluation.py</p>
+      <aside class="notes">
+        Intuition: precision@k = "is my top-k clean?"; recall@k = "did I miss the answer?"; MRR = "how high is the
+        first good hit?" MRR rewards putting the right chunk at rank 1 — directly the payoff of reranking. These
+        need ground-truth relevance labels, which motivates the eval-dataset slide.
+      </aside>
+    </section>
+
+    <section>
+      <h2>RAGAS framework <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>Automated, <b>LLM-assisted</b> RAG evaluation — no giant hand-labelled set required.</li>
+        <li>Key metrics: <b>faithfulness</b>, <b>answer correctness</b>, <b>context utilisation</b> (+ relevancy, precision/recall).</li>
+        <li>An LLM judges whether claims are grounded and whether context was used.</li>
+      </ul>
+      <pre><code class="language-python">from rag_pipeline.evaluation import ragas_evaluate
+scores = ragas_evaluate(questions, answers, contexts, ground_truths)
+# -> {'faithfulness':0.82, 'answer_correctness':0.75, 'context_utilisation':0.68}</code></pre>
+      <p class="nb">→ Notebook 06 · RAGAS wrapper</p>
+      <div class="why-box"><b>Limits:</b> the judge is itself an LLM — noisy, biased, costs money. Automation
+        scales; it does not replace human spot-checks.</div>
+      <aside class="notes">
+        RAGAS lets you score without labelling everything by hand — great for scale and regression testing. But be
+        honest about limits: an LLM judge has variance and bias, and can be gamed. Use it for trend/regression
+        detection, and keep human review on high-stakes samples. Automated vs manual is a spectrum, not either/or.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Manual vs automated evaluation <span class="badge what">WHAT</span></h2>
+      <div class="two">
+        <div>
+          <h3>Manual</h3>
+          <ul>
+            <li>Human reads answers, rubric-scores</li>
+            <li>High trust, catches nuance</li>
+            <li>Slow, doesn't scale, subjective</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Automated (metrics + RAGAS)</h3>
+          <ul>
+            <li>Fast, repeatable, CI-friendly</li>
+            <li>Scales to thousands of queries</li>
+            <li>Noisy; judge can be wrong</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cause">Practice: automate the bulk, manually audit a stratified sample and every regression.</div>
+      <aside class="notes">
+        The mature answer is "both, layered." Automated metrics run in CI on every change; humans audit a
+        representative sample and investigate anything that moves. Neither alone is sufficient — automation without
+        spot-checks drifts; manual-only doesn't scale.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Building a RAG eval dataset <span class="badge what">WHAT · KEY</span></h2>
+      <ul>
+        <li><b>Ground truths</b> — question + reference answer + the chunk(s) that support it.</li>
+        <li><b>Negative testing</b> — questions your corpus <i>cannot</i> answer → the system must say "I don't know."</li>
+        <li><b>Metrics vs rubrics</b> — numeric scores (automatable) vs qualitative criteria (human judgement).</li>
+        <li>Cover the distribution: easy, multi-hop, exact-term, out-of-scope.</li>
+      </ul>
+      <pre><code class="language-python">from rag_pipeline.evaluation import build_eval_dataset
+ds = build_eval_dataset(corpus, include_negatives=True)
+# each row: {question, ground_truth, relevant_chunk_ids, answerable: bool}</code></pre>
+      <p class="nb">→ Notebook 06 · eval-dataset builders</p>
+      <aside class="notes">
+        This is the flagged-important slide — slow down. A RAG system is only as trustworthy as its eval set.
+        Ground truths give you precision/recall/correctness. Negative tests are the most-skipped and most-valuable:
+        they verify abstention — that the system says "I don't know" instead of confabulating on out-of-scope
+        questions. Metrics vs rubrics: numbers for regression gates, rubrics for nuanced human review. A dataset
+        without negatives will happily pass a system that hallucinates.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Diagnose a bad RAG output <span class="badge how">HOW</span></h2>
+      <p class="tag">Q: "What's Acme's data-residency guarantee for EU customers?"</p>
+      <p style="color:#ff9db0;font-size:0.8em">A: "Acme stores all EU data in Frankfurt with a 100% residency guarantee." ❌ (fabricated)</p>
+      <table style="font-size:0.58em">
+        <tr><th>Stage</th><th>Check</th><th>Verdict</th></tr>
+        <tr><td style="color:var(--load)">Loading</td><td>Was the security doc ingested?</td><td>✅ present</td></tr>
+        <tr><td style="color:var(--chunk)">Chunking</td><td>Is residency clause intact in one chunk?</td><td>⚠️ split across two</td></tr>
+        <tr><td style="color:var(--retr)">Retrieval</td><td>Did the residency chunk rank top-k?</td><td>❌ recall@5 miss</td></tr>
+        <tr><td style="color:var(--aug)">Augmentation</td><td>Was it in the prompt?</td><td>❌ never retrieved</td></tr>
+        <tr><td style="color:var(--gen)">Generation</td><td>Did it abstain?</td><td>❌ no "I don't know"</td></tr>
+      </table>
+      <div class="cause">Root cause = <b>chunking split → retrieval miss</b>. Amplified by <b>no abstention</b>. Fix earliest first.</div>
+      <aside class="notes">
+        This is the pipeline-thinking payoff. Walk each stage as a checklist. Notice TWO defects: an upstream cause
+        (chunk split → not retrieved) and a downstream amplifier (no abstention → it guessed). The discipline: fix
+        the EARLIEST broken stage first (chunking), because fixing generation alone would just make it abstain,
+        not answer correctly. RAGTrace in pipeline.py exposes exactly this per-stage view.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 8. ADVANCED ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 7</p>
+      <h1>Explore Advanced RAG</h1>
+      <p><span class="min">15 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        Zoom back out — greyed diagram. This is a tour of what's beyond the baseline, mostly awareness-level. 15
+        min. Recurring caveat: these are upgrades to SPECIFIC stages of the same pipeline, not a different thing.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Naïve vs Advanced vs Modular <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.66em">
+        <tr><th>Paradigm</th><th>Idea</th></tr>
+        <tr><td><b>Naïve</b></td><td>Load → chunk → embed → top-k → stuff → generate. Linear.</td></tr>
+        <tr><td><b>Advanced</b></td><td>Add pre-retrieval (query rewriting) &amp; post-retrieval (reranking, compression).</td></tr>
+        <tr><td><b>Modular</b></td><td>Swappable, routed, iterative components — retrieve multiple times, branch, loop.</td></tr>
+      </table>
+      <div class="cause">We built the <b>modular</b> mindset all day — that's why upgrading one stage doesn't break the rest.</div>
+      <aside class="notes">
+        Position today's work: we taught the pipeline modularly precisely so these advanced patterns are just
+        stage swaps. Naive is the baseline; advanced adds pre/post-retrieval polish; modular makes the flow itself
+        programmable (routing, loops). Everything below is an instance of these.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Agentic &amp; multi-hop RAG <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li><b>Agentic RAG</b> — the LLM decides <i>when</i> and <i>what</i> to retrieve, using tools. <span class="tag">(agents not covered yet — mention only)</span></li>
+        <li><b>Tool-augmented retrieval</b> — calculators, search, APIs alongside the vector store.</li>
+        <li><b>Multi-hop RAG</b> — answer needs chained lookups (A → B → C).</li>
+        <li><b>Query decomposition</b> — split a complex question into sub-questions, retrieve each.</li>
+      </ul>
+      <div class="cause">More power, more failure surface, more latency/cost — reach for it only when the task demands it.</div>
+      <aside class="notes">
+        Flag agentic as a forward reference — we cover agents in a later module, so this is awareness only.
+        Multi-hop: "which region hosts the tier that includes 99.99% SLA?" needs two retrievals. Query
+        decomposition is the practical technique. Caution: each hop compounds error and latency.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Structured data &amp; Graph RAG <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li>Not all knowledge is prose — <b>SQL databases</b>, tables, <b>knowledge graphs</b>.</li>
+        <li><b>Text-to-SQL RAG</b> — retrieve by generating a query over structured data.</li>
+        <li><b>Graph RAG</b> — retrieve over a <b>knowledge graph</b>: entities + relationships, traverse edges for multi-hop reasoning.</li>
+        <li>Better for connected facts, aggregations, "how are X and Y related?"</li>
+      </ul>
+      <aside class="notes">
+        Vector search is weak at aggregation ("how many enterprise customers?") and relationships. Graph RAG
+        encodes entities and edges, so multi-hop relational questions become graph traversals — far more reliable
+        than hoping cosine similarity chains the facts. Text-to-SQL handles precise structured lookups. Awareness
+        level; students should know these exist for connected/structured data.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Adaptive retrieval &amp; trends <span class="badge what">WHAT</span></h2>
+      <ul>
+        <li><b>Dynamic k</b> — retrieve more/fewer chunks based on query difficulty.</li>
+        <li><b>Query rewriting</b> — clean/expand the query before retrieval.</li>
+        <li><b>Long-context models vs RAG</b> — bigger windows don't kill RAG (cost, freshness, citations still win).</li>
+        <li><b>Caching</b> — cache embeddings, retrievals, even generations to cut cost/latency.</li>
+      </ul>
+      <div class="why-box"><b>When to go beyond basic RAG:</b> only when metrics show a ceiling — measure first,
+        then add complexity to the specific stage that's limiting.</div>
+      <aside class="notes">
+        Address the "won't long context replace RAG?" question head-on: no — you still need freshness, private
+        data, citations, and cost control; stuffing a whole corpus every call is expensive and noisy. Guidance:
+        don't add complexity speculatively; let evaluation tell you which stage is the bottleneck, then upgrade
+        that stage. Caching is the cheapest real-world win.
+      </aside>
+    </section>
+  </section>
+
+  <!-- ============ 9. CONCLUSION ============ -->
+  <section>
+    <section class="center">
+      <p class="stageflag">Section 8</p>
+      <h1>Conclusion</h1>
+      <p><span class="min">10 min</span></p>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load active"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk active"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr active"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug active"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen active"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval active"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <aside class="notes">
+        All stages lit — the whole pipeline as one system. 10 min to tie it together and land the takeaway. Slow
+        down; this is what they remember.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The pipeline as one system <span class="badge what">WHAT</span></h2>
+      <div class="pipe center"><svg class="pipe" viewBox="0 0 1160 120" width="1000" style="max-width:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline: Loading, Chunking, Retrieval, Augmentation, Generation, Evaluation"><defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#5b6478"/></marker></defs><g class="box load active"><rect x="8" y="30" rx="10" width="168" height="74"/><text x="92" y="72" text-anchor="middle" font-size="20">Loading</text></g><g class="box chunk active"><rect x="206" y="30" rx="10" width="168" height="74"/><text x="290" y="72" text-anchor="middle" font-size="20">Chunking</text></g><g class="box retr active"><rect x="404" y="30" rx="10" width="168" height="74"/><text x="488" y="72" text-anchor="middle" font-size="20">Retrieval</text></g><g class="box aug active"><rect x="602" y="30" rx="10" width="168" height="74"/><text x="686" y="72" text-anchor="middle" font-size="20">Augment</text></g><g class="box gen active"><rect x="800" y="30" rx="10" width="168" height="74"/><text x="884" y="72" text-anchor="middle" font-size="20">Generation</text></g><g class="box eval active"><rect x="998" y="30" rx="10" width="168" height="74"/><text x="1082" y="72" text-anchor="middle" font-size="20">Evaluation</text></g><line class="arrow" x1="176" y1="67" x2="203" y2="67"/><line class="arrow" x1="374" y1="67" x2="401" y2="67"/><line class="arrow" x1="572" y1="67" x2="599" y2="67"/><line class="arrow" x1="770" y1="67" x2="797" y2="67"/><line class="arrow" x1="968" y1="67" x2="995" y2="67"/></svg></div>
+      <ul style="font-size:0.8em">
+        <li>Every stage is a <b>design decision</b> with do's, don'ts, and failure modes.</li>
+        <li>Errors <b>compound</b> forward; evaluation <b>loops back</b> to localise them.</li>
+        <li>Metadata from <b>loading</b> powers filtering, citations, debugging downstream.</li>
+      </ul>
+      <p class="nb">→ Notebook 08 · pipeline.RAGPipeline (end-to-end + RAGTrace)</p>
+      <aside class="notes">
+        Recap the through-lines: modularity, compounding errors, the evaluation feedback loop, and metadata as the
+        connective tissue. Point at each box one last time and name the decision it represents. Notebook 08 runs
+        the whole thing with RAGTrace so they can inspect every stage's output.
+      </aside>
+    </section>
+
+    <section>
+      <h2>How design choices move the output <span class="badge what">WHAT</span></h2>
+      <table style="font-size:0.6em">
+        <tr><th>Change</th><th>Effect on answer</th></tr>
+        <tr><td>Chunk 512→256 + overlap</td><td>SLA clause no longer split → retrieved → correct</td></tr>
+        <tr><td>Dense-only → hybrid + rerank</td><td>Exact "§2.1" surfaces at rank 1 (MRR ↑)</td></tr>
+        <tr><td>Naive prompt → grounded + abstain</td><td>Out-of-scope Q now returns "I don't know" (no hallucination)</td></tr>
+        <tr><td>Add metadata filter</td><td>Enterprise Q stops matching Free-tier chunks</td></tr>
+      </table>
+      <div class="cause">Same LLM throughout. Every win came from a <b>non-LLM design decision</b>.</div>
+      <aside class="notes">
+        This table is the argument for the takeaway, made concrete. Walk each row: none of these swapped the
+        model, yet each fixed a real failure. This is the evidence that RAG quality lives in the pipeline design,
+        not the model choice.
+      </aside>
+    </section>
+
+    <section>
+      <h2>The debugging workflow <span class="badge how">HOW</span></h2>
+      <ol>
+        <li>Reproduce the bad answer; capture the <b>RAGTrace</b>.</li>
+        <li>Walk stages <b>in order</b>: was the doc loaded? chunk intact? retrieved? in the prompt? did it abstain?</li>
+        <li>Find the <b>earliest</b> broken stage — that's the root cause.</li>
+        <li>Fix it; re-run the <b>eval set</b> (incl. negatives) to confirm no regression.</li>
+      </ol>
+      <div class="cause">Don't tune the LLM first. Follow the pipeline; fix earliest-broken-first.</div>
+      <aside class="notes">
+        Give them a repeatable procedure, not vibes. The instinct is to swap models or fiddle the prompt; the
+        discipline is to trace stage by stage and fix the earliest defect, because downstream can't repair
+        upstream. Always re-run the eval set — including negative tests — so a fix doesn't silently break
+        abstention.
+      </aside>
+    </section>
+
+    <section class="center">
+      <h2 style="text-align:center">The one takeaway</h2>
+      <div class="why-box" style="font-size:1.15em;text-align:center;border-left:none;border-top:6px solid #f7d51d">
+        <b>RAG performance is determined by cumulative design decisions across ALL stages —
+        not just the choice of LLM.</b>
+      </div>
+      <p class="center tag">Loading · Chunking · Retrieval · Augmentation · Generation · Evaluation</p>
+      <aside class="notes">
+        Say it, pause, let it land. Ask them to write it down. This is the sentence the whole session was built to
+        earn. Reconnect: bad chunking → poor retrieval → bad answer; good decisions at every stage → a system that
+        is fresh, grounded, citable, and trustworthy.
+      </aside>
+    </section>
+
+    <section>
+      <h2>Additional readings</h2>
+      <ul style="font-size:0.82em">
+        <li>OpenAI — <b>Retrieval</b> &amp; <b>Vector embeddings</b> guides</li>
+        <li><b>sentence-transformers</b> docs — bi-encoders, cross-encoders, rerankers</li>
+        <li><b>LangChain</b> — Retrieval / RetrievalQA documentation</li>
+        <li><b>RAGAS</b> — automated RAG evaluation framework</li>
+        <li>Our repo: <span class="nb">rag_pipeline/</span> + <span class="nb">Notebooks 01–08</span></li>
+      </ul>
+      <p class="center" style="margin-top:26px"><b>Thank you!</b> Questions?</p>
+      <aside class="notes">
+        Point them to primary sources and back to our own package/notebooks — the best way to consolidate is to
+        run all 8 notebooks end to end and try to break each stage on purpose. Take questions. Remind them the
+        eval set (with negatives) is their safety net for everything they build next.
+      </aside>
+    </section>
+  </section>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/notes/notes.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/highlight.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    width: 1280, height: 760,
+    margin: 0.05,
+    transition: 'slide',
+    plugins: [ RevealHighlight, RevealNotes ]
+  });
+</script>
+</body>
+</html>

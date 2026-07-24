@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# Building RAG Pipelines (C8-W4-S1) — dependencies
+# ---------------------------------------------------------------------------
+# The package + notebooks run with the CORE deps below. Everything is optional
+# at runtime: if a library is missing the code degrades to an offline "mock"
+# path so the material still renders. Install the extras for the full experience.
+# ---------------------------------------------------------------------------
+
+# --- Core (always useful) ---
+numpy>=1.24
+python-dotenv>=1.0
+
+# --- LLM + embeddings providers (OpenAI is the default stack) ---
+openai>=1.30            # gpt-4o-mini + text-embedding-3-small (default)
+tiktoken>=0.7          # accurate token counting for context budgeting
+# anthropic>=0.40       # optional: Claude LLM adapter (no embeddings API)
+
+# --- Loading (document ingestion) ---
+pypdf>=4.0             # PDF loading
+beautifulsoup4>=4.12   # HTML parsing
+requests>=2.31         # API / URL ingestion
+
+# --- Retrieval ---
+rank-bm25>=0.2.2       # sparse (BM25) retrieval for hybrid search
+# faiss-cpu>=1.8        # optional: faster ANN vector store (we ship a numpy store)
+# chromadb>=0.5         # optional: persistent vector store
+
+# --- Local / offline embeddings (no API key needed) ---
+sentence-transformers>=2.7   # optional: local embeddings + cross-encoder reranker
+
+# --- LangChain (shown as PARALLEL MAPPING, not the primary focus) ---
+langchain>=0.2
+langchain-community>=0.2
+langchain-openai>=0.1
+langchain-text-splitters>=0.2
+
+# --- Evaluation ---
+# ragas>=0.1.7          # optional: RAGAS framework (heavy; notebook shows it optionally)
+# datasets>=2.19        # required by ragas
