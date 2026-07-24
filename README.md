@@ -124,6 +124,9 @@ jupyter lab
 
 ## Quick start (Google Colab)
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/baluragala/building-rag-pipelines/blob/main/notebooks/01_rag_foundations.ipynb)
+&nbsp; ← start here (Notebook 01). Every notebook has its own **Open in Colab** badge at the top.
+
 The notebooks are Colab-compatible and **already point at this repo**
 (`REPO_URL = https://github.com/baluragala/building-rag-pipelines.git` in each
 notebook's first cell), so there's nothing to configure:
