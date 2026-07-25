@@ -272,6 +272,84 @@ def evaluate_with_ragas(records: List[dict]) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
+# RAGAS-STYLE metrics computed directly with the LLM (no heavy dependency).
+# ---------------------------------------------------------------------------
+# RAGAS is powerful but its dependency web is notoriously brittle to install in a
+# shared environment (it pins specific langchain/pydantic/numpy versions). Under
+# the hood, though, RAGAS's core metrics are just LLM-as-judge prompts. So we
+# reproduce the SAME four metrics with direct LLM/embedding calls. This ALWAYS
+# runs with the OpenAI stack, needs no extra install, and — bonus — demystifies
+# what RAGAS actually does. Use `evaluate_with_ragas` (below) for the real library.
+def _judge_number(llm, prompt: str) -> float:
+    import re
+
+    try:
+        out = llm.generate(prompt)
+    except Exception:
+        return 0.0
+    m = re.search(r"[01](?:\.\d+)?", out)
+    try:
+        return max(0.0, min(1.0, float(m.group()))) if m else 0.0
+    except Exception:
+        return 0.0
+
+
+def context_precision_llm(llm, question: str, contexts: List[str]) -> float:
+    """Fraction of the retrieved contexts that are actually relevant (LLM judge)."""
+    if not contexts:
+        return 0.0
+    hits = 0
+    for ctx in contexts:
+        p = (
+            "Is the PASSAGE relevant to answering the QUESTION? Reply 1 for yes, "
+            f"0 for no, nothing else.\n\nQUESTION: {question}\n\n"
+            f"PASSAGE: {ctx[:800]}\n\nAnswer:"
+        )
+        hits += round(_judge_number(llm, p))
+    return hits / len(contexts)
+
+
+def context_recall_llm(llm, ground_truth: str, contexts: List[str]) -> float:
+    """Fraction of the reference answer's content supported by the contexts (0-1)."""
+    if not ground_truth.strip() or not contexts:
+        return 0.0
+    joined = "\n".join(c[:600] for c in contexts)
+    p = (
+        "Estimate the fraction (a number from 0 to 1) of the REFERENCE ANSWER's "
+        "factual content that is supported by the CONTEXT.\n\n"
+        f"REFERENCE ANSWER: {ground_truth}\n\nCONTEXT:\n{joined}\n\nFraction (0-1):"
+    )
+    return _judge_number(llm, p)
+
+
+def evaluate_ragas_style(records: List[dict], llm, embedder) -> dict:
+    """
+    Compute RAGAS's four metrics using only the LLM + embedder (no `ragas` install).
+    Each record needs: question, answer, contexts (list[str]), ground_truth.
+
+      * faithfulness       — is every claim in the answer supported by the context?
+      * answer_relevancy   — does the answer address the question? (embedding cosine)
+      * context_precision  — how many retrieved contexts are relevant?
+      * context_recall     — how much of the ground truth do the contexts cover?
+    """
+    f, ar, cp, cr = [], [], [], []
+    for r in records:
+        ctx = "\n\n".join(r.get("contexts", []))
+        f.append(llm_judge_faithfulness(llm, r["answer"], ctx))
+        ar.append(answer_relevance_heuristic(r["answer"], r["question"], embedder))
+        cp.append(context_precision_llm(llm, r["question"], r.get("contexts", [])))
+        cr.append(context_recall_llm(llm, r.get("ground_truth", ""), r.get("contexts", [])))
+    mean = lambda xs: round(float(np.mean(xs)), 3) if xs else 0.0
+    return {
+        "faithfulness": mean(f),
+        "answer_relevancy": mean(ar),
+        "context_precision": mean(cp),
+        "context_recall": mean(cr),
+        "n_evaluated": len(records),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Building an eval dataset from a corpus (auto-draft questions with an LLM).
 # ---------------------------------------------------------------------------
 def draft_questions_from_chunks(llm, chunks, n_per_chunk: int = 1) -> List[EvalExample]:

@@ -121,8 +121,9 @@ def answer_with_sources(
     return {
         "question": question,
         "answer": answer,
-        "sources": collect_sources(hits),
-        "context": context,
+        "sources": collect_sources(hits),          # compact labels (for display)
+        "context": context,                         # the single formatted context string
+        "contexts": [doc.page_content for doc, _ in hits],  # the raw chunk TEXTS (RAGAS needs these)
     }
 
 
